@@ -25,5 +25,8 @@ COPY ./src /app/src
 # Expose port 8080 to the outside world
 EXPOSE 8080
 
-# Command to run the application
-CMD ["python", "-m", "src.api.app"]
+# Command to run the server application
+# CMD ["python", "-m", "src.api.app"]
+
+# Command to run the UI application
+CMD ["python", "-m", "src.ui.ui_app"]
