@@ -45,7 +45,7 @@ practico-4-2026/
    docker rmi -f $(docker images -q)
    ```
 
-### Prueba 
+### Ejemplos de llamados
 
 1. Prueba de salud del server
 
