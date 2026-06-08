@@ -18,32 +18,51 @@ practico-4-2026/
 └── requirements.txt             # Dependencias del proyecto
 ```
 
-### Manejo de Docker
+### Manejo de Docker Compose
 
-1. Construir la imagen:
+1. Construir ambos servicios
 
-   ```bash
-   docker build -t property-classification-api .
-   ```
-2. Ejecutar el contenedor:
+```bash
+docker compose build
+```
 
-   ```bash
-   # Ejecutar en modo detached
-   docker run -d -p 8080:8080 text-classification-api
+2. Levantar ambos servicios
 
-   # Ver logs
-   docker logs -f <container_id>
-   ```
-3. Borrar contenedores e imágenes
+```bash
+docker compose up
+```
 
-   ```bash
-   # Borrar todos los contenedores
-   docker stop $(docker ps -a -q)
-   docker rm $(docker ps -a -q)    
+3. Levantart reconstruyendo previamente:
 
-   # Borrar todas las imágenes
-   docker rmi -f $(docker images -q)
-   ```
+```bash
+docker compose up --build
+```
+
+4. Detener todos los servicios
+
+```bash
+docker compose down
+```
+
+5. URLs
+
+Backend:
+
+```
+http://localhost:8080
+```
+
+Swagger:
+
+```
+http://localhost:8080/docs
+```
+
+Frontend (Gradio):
+
+```
+http://localhost:8081
+```
 
 ### Ejemplos de llamados
 

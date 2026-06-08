@@ -16,17 +16,17 @@ RUN apt-get update \
         && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-COPY ./requirements.txt /app/
+COPY ./src/backend/requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the application code into the container
-COPY ./src /app/src
+COPY ./src/backend /app/src
 
 # Expose port 8080 to the outside world
 EXPOSE 8080
 
 # Command to run the server application
-# CMD ["python", "-m", "src.api.app"]
+CMD ["python", "-m", "src.api.app"]
 
 # Command to run the UI application
-CMD ["python", "-m", "src.ui.ui_app"]
+# CMD ["python", "-m", "src.frontend.ui.ui_app"]

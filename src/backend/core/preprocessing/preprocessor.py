@@ -1,5 +1,5 @@
 from src.settings import custom_logger
-from src.data_model.payload import PropertyPayload
+from backend.data_model.payload import PropertyPayload
 
 
 class Preprocessor:

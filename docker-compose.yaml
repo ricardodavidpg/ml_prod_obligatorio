@@ -1,0 +1,19 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: src/backend/Dockerfile
+    image: properties-classification-api
+    ports:
+      - "8080:8080"
+  ui:
+    build:
+      context: .
+      dockerfile: src/frontend/Dockerfile
+    image: properties-classification-ui
+    ports:
+      - "8081:8081"
+    environment:
+      API_URL: "http://api:8080"
+    depends_on:
+      - api
