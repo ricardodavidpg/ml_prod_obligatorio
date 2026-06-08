@@ -1,16 +1,35 @@
+import os
+import requests
 import gradio as gr
 
+API_URL = os.getenv("API_URL", "http://localhost:8080")
+
+
 def classify(property_type, area, owner_price):
-    predicted_price = area * 1500
+    payload = {
+        "properties": [
+            {
+                "property": {
+                    "property_type": property_type,
+                    "area": int(area),
+                },
+                "owner_price": float(owner_price),
+            }
+        ]
+    }
 
-    if owner_price > predicted_price * 1.1:
-        rating = "Overpriced"
-    elif owner_price < predicted_price * 0.9:
-        rating = "Underpriced"
-    else:
-        rating = "Fairly priced"
+    response = requests.post(
+        f"{API_URL}/properties-valuation/houses",
+        json=payload,
+        timeout=10,
+    )
 
-    return predicted_price, rating
+    response.raise_for_status()
+
+    result = response.json()["properties"][0]
+
+    return result["predicted_price"], result["rating"]
+
 
 demo = gr.Interface(
     fn=classify,
