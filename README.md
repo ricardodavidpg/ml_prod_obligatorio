@@ -66,7 +66,7 @@ El Backend implementa una API REST utilizando **FastAPI**.
 Sus responsabilidades son:
 
 * recibir solicitudes de clasificación;
-* validar el payload mediante modelos de Pydantic;
+* validar el payload mediante Pydantic;
 * ejecutar el pipeline de inferencia;
 * devolver la clasificación en formato JSON.
 

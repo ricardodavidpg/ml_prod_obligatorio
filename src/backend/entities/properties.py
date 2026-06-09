@@ -1,8 +1,6 @@
 from enum import Enum
 from pydantic import BaseModel
 
-"""TODO: Completar este modelo con los campos que tenga sentido"""
-
 class PropertyType(str, Enum):
     """Represents all supported property types."""
 
@@ -12,7 +10,6 @@ class PropertyType(str, Enum):
     def __str__(self):
         return str(self.value)
 
-
 class Property(BaseModel):
     """
     Represents the characteristics of a property.
@@ -20,11 +17,16 @@ class Property(BaseModel):
     Attributes:
         property_type: Type of the property.
         area: Property area in square meters.
+        bedrooms: Number of bedrooms.
+        bathrooms: Number of bathrooms.
+        neighborhood: Name of the neighborhood.   
     """
 
     property_type: PropertyType
     area: int
-
+    bedrooms: int
+    bathrooms:int
+    neighborhood:str
 
 class ToClassifyProperty(BaseModel):
     """
@@ -36,7 +38,7 @@ class ToClassifyProperty(BaseModel):
     """
 
     property: Property
-    owner_price: float
+    price: float
 
 
 class ClassifiedProperty(BaseModel):
