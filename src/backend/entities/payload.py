@@ -1,11 +1,11 @@
-from src.data_model.properties import ToClassifyProperty, ClassifiedProperty
+from src.entities.properties import ClassifiedProperty, Property
 from typing import List
 from pydantic import BaseModel
 
 class PropertyPayload(BaseModel):
     """Input payload for the classification endpoint"""
 
-    properties: List[ToClassifyProperty]
+    properties: List[Property]
 
 class ResponsePropertyPayload(BaseModel):
     """Response payload for the classification endpoint"""

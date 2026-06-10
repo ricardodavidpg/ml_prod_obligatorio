@@ -39,7 +39,7 @@ src/
 ├── backend/
 │   ├── api/
 │   ├── core/
-│   ├── data_model/
+│   ├── entities/
 │   ├── settings/
 │   ├── utils/
 │   ├── Dockerfile

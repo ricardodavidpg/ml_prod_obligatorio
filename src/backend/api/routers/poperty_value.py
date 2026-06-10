@@ -1,14 +1,11 @@
 from fastapi import APIRouter, Request
 from fastapi import Body
 
-from src.data_model.properties import ClassifiedProperty, Property, PropertyType
-from src.data_model.payload import PropertyPayload, ResponsePropertyPayload
+from src.entities.properties import ClassifiedProperty, Property, PropertyType
+from src.entities.payload import PropertyPayload, ResponsePropertyPayload
 from src.settings import custom_logger
 
-
-
 from typing import List
-
 
 logger = custom_logger("Properties Classification Router")
 
@@ -42,15 +39,8 @@ def classify_texts(
     response = ResponsePropertyPayload(
         properties=[
             ClassifiedProperty(
-                property=item.property,
-                predicted_price=item.property.area * 1500,
-                rating=(
-                    "Overpriced"
-                    if item.owner_price > item.property.area * 1500 * 1.1
-                    else "Underpriced"
-                    if item.owner_price < item.property.area * 1500 * 0.9
-                    else "Fairly priced"
-                ),
+                property=item,
+                predicted_price=item.area * 1500
             )
             for item in property.properties
         ]
