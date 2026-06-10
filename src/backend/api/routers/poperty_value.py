@@ -4,6 +4,7 @@ from fastapi import Body
 from src.entities.properties import ClassifiedProperty, Property, PropertyType
 from src.entities.payload import PropertyPayload, ResponsePropertyPayload
 from src.settings import custom_logger
+from src.core.inference.inference_pipeline import predict
 
 from typing import List
 
@@ -14,7 +15,7 @@ properties_classification_router = APIRouter()
 
 @properties_classification_router.post("/houses")
 def classify_texts(
-    request: Request, property: PropertyPayload = Body(...)
+    request: Request, body: PropertyPayload = Body(...)
 ) -> ResponsePropertyPayload:
     """
     Endpoint for classifying a list of texts
@@ -26,23 +27,18 @@ def classify_texts(
     Returns:
         ResponsePropertyPayload object containing the classified Property
     """
-
-    # TODO: Definir llamado al preprocesador y al clasificador una vez los tengamos implementados
-    # Momentaneeamente se deja una response dummy
-    """  preprocessed_payload: PropertyPayload = request.state.preprocessor.preprocess_texts(
-        property
-    )
-    response: ResponsePropertyPayload = request.state.classifier.predict(
-        preprocessed_payload
-    )"""
+    
+    model = request.state.model
+    predicted_price = predict(body.properties, model)
 
     response = ResponsePropertyPayload(
         properties=[
             ClassifiedProperty(
                 property=item,
-                predicted_price=item.area * 1500
+                predicted_price=predicted_price[0]
+
             )
-            for item in property.properties
+            for item in body.properties
         ]
     )
     return response

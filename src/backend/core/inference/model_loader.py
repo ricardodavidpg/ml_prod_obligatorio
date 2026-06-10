@@ -2,7 +2,7 @@ import os
 import joblib
 from pathlib import Path
 
-ARTIFACTS_DIR = Path("artifacts")
+ARTIFACTS_DIR = Path("src/artifacts")
 
 def load_model():
     model_name = os.getenv("ACTIVE_MODEL", "model.pkl")

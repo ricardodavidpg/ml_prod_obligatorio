@@ -9,6 +9,7 @@ import uvicorn
 
 from src.api.routers import init_routers
 from src.settings import custom_logger
+from src.core.inference.model_loader import load_model
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -31,22 +32,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[Dict[str, Any], None]:
     try:
         logger.info("Starting up application...")
 
-        # TODO: Definir el startup de la applicación una vez tengamos hecho el clasificador
+        model = load_model()
 
-        """settings = SettingsManager()
-        preprocessor = Preprocessor()
-        classifier = Classifier(
-            model_id=settings.MODEL_ID,
-            batch_size=settings.BATCH_SIZE,
-        )"""
-        """logger.info("Application startup complete")"""
-        """yield {
-            "settings": settings,
-            "preprocessor": preprocessor,
-            "classifier": classifier,
-        }"""
-        yield
-            # TODO: Definir el yield con lo que querramos mantener en scope global
+        yield {
+            "model": model,
+        }
         
     except Exception as e:
         logger.error(f"Error during startup: {str(e)}")
