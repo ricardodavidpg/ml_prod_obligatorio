@@ -32,13 +32,12 @@ def classify_texts(
     predicted_price = predict(body.properties, model)
 
     response = ResponsePropertyPayload(
-        properties=[
+        properties = [
             ClassifiedProperty(
-                property=item,
-                predicted_price=predicted_price[0]
-
-            )
-            for item in body.properties
+                property = property, 
+                predicted_price = price
+            ) 
+            for property, price in zip(body.properties, predicted_price)
         ]
     )
     return response
