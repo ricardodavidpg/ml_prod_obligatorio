@@ -1,42 +1,37 @@
-from enum import Enum
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-class PropertyType(str, Enum):
-    """Represents all supported property types."""
-
-    HOUSE = "House"
-    APARTMENT = "Apartment"
-
-    def __str__(self):
-        return str(self.value)
 
 class Property(BaseModel):
-    """
-    Represents the characteristics of a property.
+    area: int = Field(
+        ...,
+        gt=0,
+        description="Superficie construida en metros cuadrados.",
+        examples=[120],
+    )
+    bedrooms: int = Field(
+        ...,
+        ge=0,
+        description="Cantidad de dormitorios.",
+        examples=[3],
+    )
+    bathrooms: int = Field(
+        ...,
+        ge=0,
+        description="Cantidad de baños.",
+        examples=[2],
+    )
+    neighborhood: str = Field(
+        ...,
+        description="Barrio donde se ubica la propiedad.",
+        examples=["Pocitos"],
+    )
 
-    Attributes:
-        property_type: Type of the property.
-        area: Property area in square meters.
-        bedrooms: Number of bedrooms.
-        bathrooms: Number of bathrooms.
-        neighborhood: Name of the neighborhood.   
-    """
-    
-    property_type: PropertyType
-    area: int
-    bedrooms: int
-    bathrooms:int
-    neighborhood:str
 
 class ClassifiedProperty(BaseModel):
-    """
-    Represents a property that has already been classified.
-
-    Attributes:
-        property: Original property information.
-        predicted_price: Price predicted by the model.
-    """
-
-    property: Property
-    predicted_price: float
+    property: Property = Field(..., description="Características originales de la propiedad.")
+    predicted_price: float = Field(
+        ...,
+        description="Precio estimado por el modelo (USD).",
+        examples=[185000.0],
+    )
 

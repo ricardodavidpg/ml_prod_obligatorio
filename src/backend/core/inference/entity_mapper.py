@@ -3,7 +3,6 @@ from src.entities.properties import Property
 from typing import List
 
 FEATURE_COLUMNS = [
-    "property_type",
     "area",
     "bedrooms",
     "bathrooms",
@@ -12,7 +11,6 @@ FEATURE_COLUMNS = [
 
 def property_to_dataframe(property: Property) -> pd.DataFrame:
     return {
-        "property_type": property.property_type,
         "bedrooms": property.bedrooms,
         "bathrooms": property.bathrooms,
         "area": property.area,

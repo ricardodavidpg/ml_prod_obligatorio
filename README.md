@@ -1,201 +1,238 @@
-# Arquitectura de la solución
+# Property Valuation — ML en Producción 2026
 
-La solución se diseñó siguiendo una arquitectura basada en dos servicios independientes: un **Backend** encargado de exponer la API de clasificación y un **Frontend** que proporciona una interfaz gráfica desarrollada con Gradio.
+Predicción del precio de propiedades inmobiliarias en Montevideo mediante un modelo de Machine Learning, expuesto como API REST y consumido por una interfaz web interactiva.
 
-Ambos componentes se encuentran en un mismo repositorio (monorepo), pero son construidos y desplegados de forma independiente mediante imágenes Docker diferentes.
+**Autores:** Rodrigo Mendez, Leonell Tambasco, David Pereira
+
+---
+
+## Arquitectura general
 
 ```
                     Usuario
                        │
                 Navegador Web
                        │
-              http://<ip>:8081
+              http://<host>:8081
                        │
-               ┌─────────────────┐
-               │   Frontend UI   │
-               │     Gradio      │
-               └─────────────────┘
+          ┌────────────────────────┐
+          │     Frontend UI        │
+          │       Gradio           │  Docker Container
+          └────────────────────────┘
                        │
             HTTP REST (JSON)
                        │
-               http://localhost:8080
+              http://api:8080
                        │
-               ┌─────────────────┐
-               │   Backend API   │
-               │     FastAPI     │
-               └─────────────────┘
-                       │
-             Modelo de Machine Learning
+          ┌────────────────────────┐
+          │     Backend API        │
+          │       FastAPI          │  Docker Container
+          │                        │
+          │  Inference Pipeline    │
+          │  Modelo ML (.pkl)      │
+          └────────────────────────┘
 ```
 
 ---
 
-# Organización del proyecto
-
-El proyecto se encuentra organizado como un monorepo, separando claramente las responsabilidades de cada componente.
+## Estructura del proyecto
 
 ```
-src/
-├── backend/
-│   ├── api/
-│   ├── core/
-│   ├── entities/
-│   ├── settings/
-│   ├── utils/
-│   ├── Dockerfile
-│   └── requirements.txt
-│
-└── frontend/
-    ├── ui/
-    ├── Dockerfile
-    └── requirements.txt
+ml_prod_obligatorio/
+├── docker-compose.yaml
+├── setup.py
+└── src/
+    ├── backend/                        # Servicio de inferencia (API REST)
+    │   ├── Dockerfile
+    │   ├── requirements.txt
+    │   ├── api/
+    │   │   ├── app.py                  # Entrypoint FastAPI + carga del modelo al inicio
+    │   │   └── routers/
+    │   │       ├── __init__.py         # Registro de routers
+    │   │       ├── health.py           # GET /health
+    │   │       └── poperty_value.py    # POST /properties-valuation/houses
+    │   ├── core/
+    │   │   └── inference/
+    │   │       ├── inference_pipeline.py   # Orquesta la predicción
+    │   │       ├── model_loader.py         # Carga el modelo desde disco (joblib)
+    │   │       └── entity_mapper.py        # Convierte entidades Pydantic a DataFrame
+    │   ├── entities/
+    │   │   ├── properties.py           # Property, ClassifiedProperty, PropertyType
+    │   │   └── payload.py              # PropertyPayload, ResponsePropertyPayload
+    │   ├── settings/
+    │   │   ├── __init__.py
+    │   │   ├── logger.py               # Configuración del logger
+    │   │   └── settings_manager.py     # Carga configuración desde YAML
+    │   ├── utils/
+    │   │   └── file_loading.py
+    │   └── artifacts/
+    │       └── model.pkl               # Modelo entrenado (debe existir antes de buildear)
+    └── frontend/                       # Interfaz de usuario (Gradio)
+        ├── Dockerfile
+        ├── requirements.txt
+        └── ui/
+            └── ui_app.py               # App Gradio, consume la API via HTTP
 ```
-
-Cada componente posee:
-
-* Dockerfile propio
-* Dependencias independientes
-* Imagen Docker independiente
 
 ---
 
-# Backend
+## Descripción de los paquetes
 
-El Backend implementa una API REST utilizando **FastAPI**.
+### `src/backend` — Servicio de inferencia
 
-Sus responsabilidades son:
+Aplicación **FastAPI** que expone el modelo de ML como API REST. Puerto: `8080`.
 
-* recibir solicitudes de clasificación;
-* validar el payload mediante Pydantic;
-* ejecutar el pipeline de inferencia;
-* devolver la clasificación en formato JSON.
+| Paquete | Responsabilidad |
+|---|---|
+| `api/app.py` | Inicializa la app FastAPI. Al arrancar carga el modelo en memoria via `lifespan` y lo deja disponible en `request.state` para todos los handlers |
+| `api/routers/health.py` | Endpoint `GET /health` — responde `{"status": "ok"}` para verificar que el servicio está activo |
+| `api/routers/poperty_value.py` | Endpoint `POST /properties-valuation/houses` — recibe una lista de propiedades, invoca el pipeline de inferencia y devuelve los precios estimados |
+| `core/inference/model_loader.py` | Carga el modelo serializado desde `src/artifacts/` usando `joblib`. El nombre del archivo se controla con la variable de entorno `ACTIVE_MODEL` |
+| `core/inference/entity_mapper.py` | Convierte una lista de entidades `Property` en un `DataFrame` de pandas con las columnas esperadas por el modelo |
+| `core/inference/inference_pipeline.py` | Orquesta la predicción: llama al mapper y ejecuta `model.predict()` |
+| `entities/properties.py` | Modelos Pydantic: `PropertyType` (enum House/Apartment), `Property` (entrada), `ClassifiedProperty` (salida con precio) |
+| `entities/payload.py` | Modelos Pydantic para request (`PropertyPayload`) y response (`ResponsePropertyPayload`) del endpoint |
+| `settings/` | Logger personalizado y carga de configuración desde YAML |
+| `artifacts/` | Directorio donde se almacena el modelo serializado |
 
-Este servicio expone, entre otros, los siguientes endpoints:
+**Variables de entorno:**
 
-```
-GET  /health
+| Variable | Descripción | Default |
+|---|---|---|
+| `ACTIVE_MODEL` | Nombre del archivo del modelo en `src/artifacts/` | `model.pkl` |
 
+**Endpoints:**
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| `GET` | `/health` | Verifica que el servicio esté activo |
+| `POST` | `/properties-valuation/houses` | Predice el precio de una lista de propiedades |
+| `GET` | `/docs` | Documentación interactiva Swagger (solo desarrollo) |
+
+Ejemplo de request:
+
+```json
 POST /properties-valuation/houses
+
+{
+  "properties": [
+    {
+      "area": 120,
+      "bedrooms": 3,
+      "bathrooms": 2,
+      "neighborhood": "Pocitos"
+    }
+  ]
+}
 ```
 
-Durante el desarrollo también se dispone automáticamente de la documentación Swagger:
+Ejemplo de response:
 
-```
-/docs
-```
-
----
-
-# Frontend
-
-El Frontend implementa una interfaz gráfica utilizando **Gradio**.
-
-Su única responsabilidad consiste en:
-
-* solicitar los datos al usuario;
-* construir el payload JSON;
-* consumir la API REST del Backend;
-* mostrar los resultados de la clasificación.
-
-La UI no contiene ninguna lógica de negocio ni realiza inferencias localmente.
-
----
-
-# Comunicación entre servicios
-
-La comunicación entre ambos componentes se realiza mediante HTTP REST.
-
-Durante el desarrollo local, Docker Compose crea automáticamente una red privada donde ambos servicios pueden comunicarse utilizando el nombre del servicio.
-
-```
-Frontend
-      │
-      │ HTTP POST
-      ▼
-http://api:8080
-```
-
-En producción, ambos contenedores se ejecutan dentro de la misma **ECS Task**, compartiendo la misma interfaz de red. En este escenario el Frontend consume la API mediante:
-
-```
-http://localhost:8080
-```
-
-La dirección utilizada se configura mediante la variable de entorno:
-
-```
-API_URL
+```json
+{
+  "properties": [
+    {
+      "property": {
+        "area": 120,
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "neighborhood": "Pocitos"
+      },
+      "predicted_price": 185000.0
+    }
+  ]
+}
 ```
 
 ---
 
-# Contenedores Docker
+### `src/frontend` — Interfaz de usuario
 
-Cada componente posee una imagen Docker independiente.
+Aplicación **Gradio** que permite ingresar las características de una o más propiedades de forma interactiva y solicitar la predicción al servicio de inferencia. Puerto: `8081`.
 
-```
-Imagen Backend
-──────────────
-Python
-FastAPI
-Modelo ML
+No contiene lógica de negocio ni realiza inferencias localmente.
 
-Imagen Frontend
-───────────────
-Python
-Gradio
-Requests
-```
+| Módulo | Responsabilidad |
+|---|---|
+| `ui/ui_app.py` | Renderiza la interfaz Gradio, gestiona el estado de la lista de propiedades y realiza las llamadas HTTP al backend mediante `requests` |
 
-Esta separación permite actualizar cualquiera de los dos componentes sin necesidad de reconstruir el otro.
+**Variables de entorno:**
+
+| Variable | Descripción | Default |
+|---|---|---|
+| `API_URL` | URL base del servicio de inferencia | `http://localhost:8080` |
 
 ---
 
-# Docker Compose
+## Requisitos previos
 
-Durante el desarrollo se utiliza Docker Compose para levantar ambos servicios de forma conjunta.
+- [Docker](https://www.docker.com/) instalado y corriendo
+- El archivo `src/backend/artifacts/model.pkl` debe existir antes de buildear (generado por el pipeline de entrenamiento)
 
-```
+---
+
+## Comandos Docker
+
+Buildear y levantar ambos servicios:
+
+```bash
 docker compose up --build
 ```
 
-Compose se encarga de:
+Levantar sin rebuildar (imágenes ya existentes):
 
-* construir ambas imágenes;
-* crear una red privada;
-* iniciar ambos contenedores;
-* configurar la comunicación entre ellos.
+```bash
+docker compose up
+```
+
+Levantar en segundo plano:
+
+```bash
+docker compose up --build -d
+```
+
+Ver logs:
+
+```bash
+docker compose logs -f
+```
+
+Detener los servicios:
+
+```bash
+docker compose down
+```
+
+Una vez levantado:
+
+| Servicio | URL |
+|---|---|
+| Interfaz web | http://localhost:8081 |
+| API REST | http://localhost:8080 |
+| Docs Swagger | http://localhost:8080/docs |
 
 ---
 
-# Despliegue en AWS
+## Ejecución local (sin Docker)
 
-El despliegue se realiza utilizando **Amazon ECS sobre AWS Fargate**.
+**Backend:**
 
-La arquitectura desplegada es la siguiente:
-
-```
-Internet
-     │
-Public IP
-     │
-┌──────────────────────────┐
-│ ECS Service              │
-│                          │
-│  ECS Task                │
-│  ┌────────────────────┐  │
-│  │ Backend Container  │  │
-│  │ FastAPI            │  │
-│  └────────────────────┘  │
-│                          │
-│  ┌────────────────────┐  │
-│  │ Frontend Container │  │
-│  │ Gradio             │  │
-│  └────────────────────┘  │
-└──────────────────────────┘
+```bash
+pip install -r src/backend/requirements.txt
+python -m src.backend.api.app
 ```
 
-Cada contenedor utiliza una imagen almacenada en **Amazon Elastic Container Registry (ECR)**.
+**Frontend** (en otra terminal):
 
-La UI es el componente expuesto al usuario final, mientras que el Backend procesa las solicitudes de clasificación realizadas desde la interfaz.
+```bash
+pip install -r src/frontend/requirements.txt
+API_URL=http://localhost:8080 python -m src.frontend.ui.ui_app
+```
 
+---
+
+## Despliegue en AWS
+
+Ambos contenedores son desplegados en la misma **ECS Task** sobre **AWS Fargate**, compartiendo la misma interfaz de red. En ese escenario la variable `API_URL` del frontend se configura como `http://localhost:8080`, ya que ambos contenedores corren en el mismo host de red dentro de la tarea.
+
+Las imágenes se almacenan en **Amazon ECR** y son referenciadas desde la definición de la tarea ECS.

@@ -12,5 +12,9 @@ def init_routers(app: FastAPI) -> None:
         app: FastAPI application instance
     """
 
-    app.include_router(health_router)
-    app.include_router(properties_classification_router, prefix="/properties-valuation")
+    app.include_router(health_router, tags=["Salud"])
+    app.include_router(
+        properties_classification_router,
+        prefix="/properties-valuation",
+        tags=["Valuación de Propiedades"],
+    )

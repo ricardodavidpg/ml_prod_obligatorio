@@ -4,10 +4,28 @@ import gradio as gr
 
 API_URL = os.getenv("API_URL", "http://localhost:8080")
 
-PROPERTY_TYPES = ["House", "Apartment"]
-NEIGHBORHOODS = ["Pocitos", "Cordón", "Centro", "Malvín", "Buceo", "Punta Carretas"]
+NEIGHBORHOODS = [
+    "Aguada", "Aires Puros", "Arroyo Seco", "Atahualpa", "Barra de Carrasco",
+    "Barrio Lagos de Carrasco", "Barrio Parques", "Barrio San Nicolás", "Barrio Sur",
+    "Bañados de Carrasco", "Bella Italia", "Bella Vista", "Belvedere", "Bolivar",
+    "Brazo Oriental", "Buceo", "Camino Maldonado", "Capurro", "Capurro Bella Vista",
+    "Carrasco", "Carrasco Barrios con Seguridad", "Carrasco Este", "Carrasco Norte",
+    "Casabo Pajas Blancas", "Casavalle", "Centro", "Cerrito", "Cerro", "Ciudad Vieja",
+    "Colón", "Conciliación", "Cordón", "Flor de Maroñas", "Goes", "Golf", "Ituzaingó",
+    "Jacinto Vera", "Jardines de Carrasco", "Jardines del Hipódromo", "La Blanqueada",
+    "La Comercial", "La Figurita", "La Paloma Tomkinson", "La Teja", "Larrañaga",
+    "Las Acacias", "Las Canteras", "Lezica", "Los Olivos", "Malvín", "Malvín Norte",
+    "Manga", "Marconi", "Maroñas", "Melilla", "Mercado Modelo", "Montevideo",
+    "Nuevo París", "Pajas Blancas", "Palermo", "Parque Batlle", "Parque Miramar",
+    "Parque Rodó", "Paso Molino", "Paso de la Arena", "Perez Castellanos", "Peñarol",
+    "Peñarol Lavalleja", "Piedras Blancas", "Pocitos", "Pocitos Nuevo", "Prado",
+    "Prado Nueva Savona", "Puerto Buceo", "Punta Carretas", "Punta Gorda",
+    "Punta Rieles", "Reducto", "Sayago", "Tres Cruces", "Tres Ombues Pblo Victoria",
+    "Unión", "Villa Biarritz", "Villa Dolores", "Villa Española",
+    "Villa García Manga Rural", "Villa Muñoz", "Zona Rural",
+]
 
-COLUMNS = ["property_type", "area", "bedrooms", "bathrooms", "neighborhood"]
+COLUMNS = ["area", "bedrooms", "bathrooms", "neighborhood"]
 
 
 def render_properties(rows):
@@ -15,24 +33,23 @@ def render_properties(rows):
         return "_No properties added yet._"
 
     lines = [
-        "| # | Type | Area | Bedrooms | Bathrooms | Neighborhood |",
-        "|---|------|------|----------|-----------|--------------|",
+        "| # | Area | Bedrooms | Bathrooms | Neighborhood |",
+        "|---|------|----------|-----------|--------------|",
     ]
 
     for i, row in enumerate(rows, start=1):
         lines.append(
-            f"| {i} | {row['property_type']} | {row['area']} | "
+            f"| {i} | {row['area']} | "
             f"{row['bedrooms']} | {row['bathrooms']} | {row['neighborhood']} |"
         )
 
     return "\n".join(lines)
 
 
-def add_property(property_type, neighborhood, area, bedrooms, bathrooms, rows):
+def add_property(neighborhood, area, bedrooms, bathrooms, rows):
     rows = rows or []
 
     rows = rows + [{
-        "property_type": property_type,
         "area": int(area),
         "bedrooms": int(bedrooms),
         "bathrooms": int(bathrooms),
@@ -74,8 +91,8 @@ def classify(rows):
     results = response.json()["properties"]
 
     lines = [
-        "| # | Type | Area | Bedrooms | Bathrooms | Neighborhood | Predicted price |",
-        "|---|------|------|----------|-----------|--------------|-----------------|",
+        "| # | Area | Bedrooms | Bathrooms | Neighborhood | Predicted price |",
+        "|---|------|----------|-----------|--------------|-----------------|",
     ]
 
     for i, result in enumerate(results, start=1):
@@ -83,7 +100,7 @@ def classify(rows):
         price = round(result["predicted_price"], 2)
 
         lines.append(
-            f"| {i} | {p['property_type']} | {p['area']} | "
+            f"| {i} | {p['area']} | "
             f"{p['bedrooms']} | {p['bathrooms']} | {p['neighborhood']} | {price} |"
         )
 
@@ -98,12 +115,6 @@ with gr.Blocks(title="Property Valuation") as ui:
     with gr.Row():
         with gr.Column(scale=1):
             gr.Markdown("## Add Property")
-
-            property_type = gr.Dropdown(
-                PROPERTY_TYPES,
-                value="House",
-                label="Property Type",
-            )
 
             neighborhood = gr.Dropdown(
                 NEIGHBORHOODS,
@@ -132,7 +143,7 @@ with gr.Blocks(title="Property Valuation") as ui:
 
     add_btn.click(
         fn=add_property,
-        inputs=[property_type, neighborhood, area, bedrooms, bathrooms, rows_state],
+        inputs=[neighborhood, area, bedrooms, bathrooms, rows_state],
         outputs=[rows_state, properties_view],
     )
 

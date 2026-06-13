@@ -1,18 +1,21 @@
 from fastapi import APIRouter
-from typing import Dict
+from pydantic import BaseModel
 from src.settings import custom_logger
 
 logger = custom_logger("API Health")
 
 health_router = APIRouter()
 
-@health_router.get("/health")
-def get_health() -> Dict[str, str]:
-    """
-    Endpoint for checking the health of the API server
 
-    Returns:
-        Dictionary containing the status of the API server
-    """
+class HealthResponse(BaseModel):
+    status: str = "ok"
 
-    return {"status": "ok"}
+
+@health_router.get(
+    "/health",
+    summary="Health check",
+    response_description="Estado del servicio.",
+)
+def get_health() -> HealthResponse:
+    """Retorna `{"status": "ok"}` cuando el servicio está funcionando correctamente."""
+    return HealthResponse()
